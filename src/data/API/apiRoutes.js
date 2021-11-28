@@ -1,115 +1,169 @@
 import { Tasks, User } from '../model/index.js';
 import { createJwtToken } from '../../helpers/createToken.js';
-// import moment from 'moment';
 
 const apiRoutes = app => {
-    app.get('/test', (req, res) => {
-        console.log('req ---- ', req)
-        res.send({ status: 200 })
-    })
-    app.post('/user', async (req, res) => {
-        try {
-            console.log('checkUser --- ', req.body)
 
+    app.post('/signup', async (req, res) => {
+        try {
             const checkUser = await User.findOne({ email: req.body.email })
-            console.log('checkUser --- ', checkUser)
-            if (checkUser) return res.status(400).send("Email is Already Exist");
+            if (checkUser) return res.status(400).send({
+                status: 400,
+                errorMessage: "Email is Already Exist"
+            });
             const createUser = new User(req.body);
-            // const createUser = new User({
-            //     name: 'trrt',
-            //     email: 'sdd@xv.di',
-            //     password: '2345678654'
-            // });
             await createUser.save();
             let id = createUser._id.toString();
             let auth = createJwtToken({ id, email: req.body.email });
-            res.cookie('auth', auth).status(200).send(createUser)
+            res.cookie('auth', auth).status(200).send({
+                status: 200,
+                result: createUser
+            })
         } catch (error) {
-            console.log('error ---- ', error)
-            res.status(400).send(error)
+            res.status(400).send({
+                status: 400,
+                errorMessage: error
+            })
         }
     })
 
-    app.post('/checkUser', async (req, res) => {
-        console.log('check ----------', req.body)
-        if (req.body && (req.body.email || req.body.password)) return res.status(400).send("Something went wrong!")
-
+    app.post('/login', async (req, res) => {
+        if (req.body && (!req.body.email || !req.body.password)) return res.status(400).send({
+            status: 400,
+            errorMessage: "Please provide valid data"
+        })
         if (req.body) {
             const { email, password } = req.body || {};
             const checkUser = await User.findOne({ email, password })
-            console.log('data --- ', checkUser)
             if (checkUser) {
                 let id = checkUser._id.toString();
-                let token = createJwtToken({ id, email: 'sdd@xv.di' })
-                res.cookie('auth', token).status(200).send('Valid User')
+                let token = createJwtToken({ id, email: req.body.email })
+                res.cookie('auth', token).status(200).send({
+                    status:200,
+                    result: checkUser
+                })
             } else {
-                res.status(400).send('User not found, Kinldy check the credentials')
+                res.status(400).send({
+                    status: 400,
+                    errorMessage: 'User not found, Kinldy check the credentials'
+                })
             }
         }
     })
 
-    app.get('/logout', (req, res) => {
-        if(req.user) res.clearCookie('auth').status(200).send('Done')
+    app.post('/logout', (req, res) => {
+        if (req.user) return res.clearCookie('auth').status(200).send({
+            status: 200
+        });
+
+        res.status(500).send({
+            status: 500,
+            errorMessage: "You are not logged In"
+        })
     })
 
     app.post('/task', async (req, res) => {
-        // if(!req.user || req.user.id) return res.status(500).send({
-        //     status: 500,
-        //     errorMessage: 'Please login and continue'
-        // })
+        if (!req.user && req.user.id) return res.status(500).send({
+            status: 500,
+            errorMessage: 'Please login and continue'
+        })
         const task = req.body;
-        console.log(task)
-        if(!task) return res.send({
-
+        if (!task) return res.send({
             status: 400,
             errorMessage: "Invalid data"
         });
-        if(!task.name || (task.name.toString().trim() === "")) return res.send({
-            status:  400,
-            errorMessage: "Task name is required."
-        });
-        if(!task.expiredAt) return res.send({
-            status: 400,
-            errorMessage: "Task expiry is required."
-        });
-        if(task.id) {
+
+        if (task.id) {
+            let updateData = { updatedAt: new Date() };
+            if (task.name) updateData['name'] = task.name;
+            if (task.expiredAt) updateData['expiredAt'] = task.expiredAt;
+            if ([true, false].includes(task.isCompleted)) updateData['isCompleted'] = task.isCompleted;
             try {
+                if (!task.name && !task.expiredAt && ![true, false].includes(task.isCompleted)) {
+                    res.send({
+                        status: 400,
+                        errorMessage: "Nothing to update."
+                    });
+                }
                 const isTaskUpdated = await Tasks.findByIdAndUpdate(task.id, {
-                    $set: {
-                        name: task.name,
-                        expiredAt: task.expiredAt,
-                        updatedAt: new Date()
-                    }
+                    $set: updateData
                 });
-                console.log('Update task is id ', isTaskUpdated)
-                if(!isTaskUpdated) return res.send({
+                if (!isTaskUpdated) return res.send({
                     status: 404,
                     errorMessage: "Task not found"
                 });
+                res.status(200).send({
+                    status: 200
+                })
             } catch (error) {
                 console.log(error);
-                return res.status(400).send(error);
+                return res.status(400).send({
+                    status: 400,
+                    errorMessage: error
+                });
             }
-        }
-        try {
-            const createTasks = new Tasks({
-                ...task,
-                userId: "61a1e7a73f0fae2df893a899" || req.user.id,
-                createdAt: new Date(),
-                updatedAt: new Date()
+        } else {
+            if (!task.name || (task.name && task.name.toString().trim() === "")) return res.send({
+                status: 400,
+                errorMessage: "Task name is required."
             });
-            await createTasks.save();
-            res.status(200).send(createTasks)
-        } catch (error) {
-            console.log(error)
-            res.status(400).send(error)
+            if (!task.expiredAt) return res.send({
+                status: 400,
+                errorMessage: "Task expiry is required."
+            });
+            try {
+                const createTasks = new Tasks({
+                    ...task,
+                    userId: req.user.id,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                });
+                await createTasks.save();
+                res.status(200).send({
+                    status: 200,
+                    result: createTasks
+                })
+            } catch (error) {
+                console.log(error)
+                res.status(400).send({
+                    status: 400,
+                    errorMessage: error
+                })
+            }
         }
     })
 
     app.get('/tasks/:id?', async (req, res) => {
-        const _id = params && params.id;
-        if (!_id) {
-            res.send('s')
+        try {
+            if (!req?.user?.id) {
+                return res.status(500).send({
+                    status: 500,
+                    errorMessage: "Please login to continue."
+                })
+            }
+            const id = req?.params?.id;
+            if (!id) {
+                const getOwnTasks = await Tasks.find({
+                    userId: req.user.id
+                })
+                res.status(200).send(getOwnTasks)
+            } else {
+                if (id == 'all') {
+                    const getOthersTasks = await Tasks.find({
+                        userId: { $ne: req.user.id }
+                    })
+                    if (!getOthersTasks) return res.status(400).send("No Tasks found")
+                    res.status(200).send(getOthersTasks)
+                } else {
+                    const getTask = await Tasks.findById(id);
+                    if (!getTask) return res.status(400).send('No Tasks Found');
+                    res.status(200).send(getTask)
+                }
+            }
+        } catch (error) {
+            console.log('error -- ', error);
+            res.status(400).send({
+                error
+            })
         }
     })
 }
