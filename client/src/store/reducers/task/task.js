@@ -2,6 +2,7 @@ import {
     GET_TASKS_SUCCESS,
     UPDATE_TASKS_SUCCESS,
     CREATE_TASK_SUCCESS,
+    EDIT_TASK_FORM
 } from '../../../helpers/constants';
 
 export default (state = {}, action) => {
@@ -12,7 +13,6 @@ export default (state = {}, action) => {
                 ...action.payload
             };
         case GET_TASKS_SUCCESS:
-            console.log('GET_TASKS_SUCCESS ---- ', action.payload)
             return {
                 ...state,
                 ...action.payload
@@ -22,6 +22,11 @@ export default (state = {}, action) => {
                 ...state,
                 ...action.payload
             };
+        case EDIT_TASK_FORM:
+            return {
+                ...state,
+                ...action.payload
+            }
         default:
             return state;
     }

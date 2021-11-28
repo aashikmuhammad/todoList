@@ -8,7 +8,7 @@ import axios from 'axios';
 
 export const userLogin = ({ email, password }) => {
 
-    return async (dispatch, getState) => {
+    return async dispatch => {
         try {
             await dispatch({ type: USER_LOGIN_START });
 
@@ -18,18 +18,34 @@ export const userLogin = ({ email, password }) => {
                     password
                 },
                 {
-                    withCredentials: true
+                    withCredentials: true,
+                    headers: {
+                        'Cache-Control': 'no-cache'
+                    }
                 }
             )
-            if (!userLogin || (userLogin?.status != 200)) {
-                return await dispatch({
+            if (!userLogin || (userLogin?.data?.status != 200)) {
+                await dispatch({
                     type: USER_LOGIN_ERROR,
                     payload: {
-                        errorMessage: userLogin?.errorMessage ||  'Unable to login, Please try again later'
+                        errorMessage: userLogin?.data?.errorMessage ||  'Unable to login, Please try again later'
                     }
                 });
+                return {
+                    status: 400,
+                    errorMessage: userLogin?.data?.errorMessage ||  'Unable to login, Please try again later'
+                };
             }
-            await dispatch({ type: USER_LOGIN_SUCCESS });
+            await dispatch({ 
+                type: USER_LOGIN_SUCCESS,
+                payload: {
+                    result: userLogin?.data?.result
+                }
+             });
+            return {
+                status: 200,
+                result: userLogin?.data?.result
+            };
         } catch (error) {
             await dispatch({
                 type: USER_LOGIN_ERROR,
@@ -37,6 +53,10 @@ export const userLogin = ({ email, password }) => {
                     errorMessage: error
                 }
             });
+            return {
+                status: 400,
+                errorMessage: error
+            };
         }
     }
 };

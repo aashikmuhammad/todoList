@@ -1,10 +1,10 @@
-import { applyMiddleware, createStore } from 'redux'
-import thunkMiddleware from 'redux-thunk'
-import { composeWithDevTools } from 'redux-devtools-extension'
+import { applyMiddleware, createStore } from 'redux';
+import thunkMiddleware from 'redux-thunk';
+import { composeWithDevTools } from 'redux-devtools-extension';
 
-import monitorReducersEnhancer from './enhancers/monitorReducer'
-import loggerMiddleware from './middleware/logger'
-import rootReducer from './reducers'
+import monitorReducersEnhancer from './enhancers/monitorReducer';
+import loggerMiddleware from './middleware/logger';
+import rootReducer from './reducers';
 
 export default (preloadedState) => {
   const middlewares = [loggerMiddleware, thunkMiddleware]
@@ -13,8 +13,7 @@ export default (preloadedState) => {
   const enhancers = [middlewareEnhancer, monitorReducersEnhancer]
   const composedEnhancers = composeWithDevTools(...enhancers)
 
-  const store = createStore(rootReducer, preloadedState, composedEnhancers)
+  const store = createStore(rootReducer, preloadedState, composedEnhancers);
 
-  return store
+  return store;
 }
-// export default createStore(rootReducer, undefined, composedEnhancers)

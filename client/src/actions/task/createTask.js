@@ -8,18 +8,18 @@ import axios from '../../helpers/axiosHelper';
 
 export const createTask = ({ name, expiredAt }) => {
 
-    return async (dispatch, getState) => {
+    return async dispatch => {
         try {
             await dispatch({ type: CREATE_TASK_START });
-
             if (!name || !expiredAt) {
                 await dispatch({
                     type: CREATE_TASK_ERROR,
-                    payload: {
-                        errorMessage: ' Please Provide all the required data'
-                    }
+                    payload: { errorMessage: 'Please Provide all the required data' }
                 });
-                return;
+                return {
+                    status: 400,
+                    errorMessage: 'Please Provide all the required data'
+                };
             }
 
             const createTask = await axios.post('http://localhost:5000/task',
@@ -32,30 +32,40 @@ export const createTask = ({ name, expiredAt }) => {
                 }
             )
 
-            if (createTask) {
+            if (createTask?.data?.status == 200) {
                 await dispatch({
                     type: CREATE_TASK_SUCCESS,
                     payload: {
-                        ...createTask
+                        ...createTask?.data?.result
                     }
                 });
+                return {
+                    status: 200,
+                    result: createTask?.data.result
+                };
             } else {
                 await dispatch({
                     type: CREATE_TASK_ERROR,
                     payload: {
-                        errorMessage: "Unable to create Task"
+                        errorMessage: createTask?.data?.errorMessage || "Unable to create Task"
                     }
                 });
+                return {
+                    status: 400,
+                    errorMessage: createTask?.data?.errorMessage || "Unable to create Task"
+                };
             }
-
         } catch (error) {
-            console.log('error --- ', error);
             await dispatch({
                 type: CREATE_TASK_ERROR,
                 payload: {
                     errorMessage: error
                 }
             });
+            return {
+                status: 400,
+                errorMessage: error
+            };
         }
     }
 };

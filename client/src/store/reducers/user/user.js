@@ -9,7 +9,8 @@ export default (state = {}, action) => {
         case USER_LOGIN_SUCCESS:
             return {
                 ...state,
-                isLoggedIn: true
+                isLoggedIn: true,
+                ...action?.payload?.result
             };
         case USER_LOGOUT_SUCCESS:
             return {
@@ -19,7 +20,8 @@ export default (state = {}, action) => {
         case CREATE_USER_SUCCESS:
             return {
                 ...state,
-                ...action.payload
+                isLoggedIn: true,
+                ...action?.payload?.result
             };
         default:
             return state;

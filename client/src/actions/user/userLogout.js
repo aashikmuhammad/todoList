@@ -12,9 +12,10 @@ export const userLogout = () => {
         try {
             await dispatch({ type: USER_LOGOUT_START });
 
-            const userLogout = await axios.post('http://localhost:5000/logout', {}, {
+            const userLogout = await axios.get('http://localhost:5000/logout', {
                 withCredentials: true
             })
+
             if (!userLogout || (userLogout?.status != 200)) {
                 return await dispatch({
                     type: USER_LOGOUT_ERROR,
